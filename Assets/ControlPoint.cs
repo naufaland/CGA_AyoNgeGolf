@@ -10,34 +10,71 @@ public class ControlPoint : MonoBehaviour
     public float rotationSpeed = 5f;
     public float shootPower = 20f;
     public LineRenderer line;
-    // Start is called before the first frame update
+    private bool isDraggingBall = false;
+    private bool isRotatingCamera = false;
+
     void Start()
     {
         
     }
 
-    // Update is called once per frame
     void Update()
     {
         transform.position = ball.position;
 
-        if(Input.GetMouseButton(0))
+        if (Input.GetMouseButtonDown(0))
         {
-            xRot += Input.GetAxis("Mouse X")*rotationSpeed;
-            yRot += Input.GetAxis("Mouse Y")*rotationSpeed;
-            if(yRot < -35f)
+            Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
+            RaycastHit hit;
+
+            if (Physics.Raycast(ray, out hit))
             {
-                yRot = -35f;
+                if (hit.collider != null && hit.collider.gameObject == ball.gameObject)
+                {
+                    isDraggingBall = true;
+                    isRotatingCamera = false;
+                }
+                else
+                {
+                    isDraggingBall = false;
+                    isRotatingCamera = true;
+                }
             }
-            transform.rotation = Quaternion.Euler(yRot, xRot, 0f);
-            line.gameObject.SetActive(true);
-            line.SetPosition(0, transform.position);
-            line.SetPosition(1, transform.position + transform.forward * 4f);
         }
-        if(Input.GetMouseButtonUp(0))
+
+        if (Input.GetMouseButton(0))
         {
-            ball.velocity = transform.forward * shootPower;
+            if (isDraggingBall)
+            {
+                xRot += Input.GetAxis("Mouse X") * rotationSpeed;
+                yRot += Input.GetAxis("Mouse Y") * rotationSpeed;
+                yRot = Mathf.Clamp(yRot, -35f, 35f);
+                transform.rotation = Quaternion.Euler(yRot, xRot, 0f);
+
+                line.gameObject.SetActive(true);
+                line.SetPosition(0, transform.position);
+                line.SetPosition(1, transform.position + transform.forward * 4f);
+            }
+            else if (isRotatingCamera)
+            {
+                xRot += Input.GetAxis("Mouse X") * rotationSpeed;
+                yRot += Input.GetAxis("Mouse Y") * rotationSpeed;
+                yRot = Mathf.Clamp(yRot, -35f, 35f);
+                transform.rotation = Quaternion.Euler(yRot, xRot, 0f);
+
+                line.gameObject.SetActive(false);
+            }
+        }
+
+        if (Input.GetMouseButtonUp(0))
+        {
+            if (isDraggingBall)
+            {
+                ball.velocity = transform.forward * shootPower;
+                isDraggingBall = false;
+            }
             line.gameObject.SetActive(false);
+            isRotatingCamera = false;
         }
     }
 }
