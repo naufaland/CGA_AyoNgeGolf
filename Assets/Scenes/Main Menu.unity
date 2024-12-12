@@ -2857,8 +2857,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 06f671bae34cdc44c90c10709eba0610, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  sliderMusic: {fileID: 0}
-  ObjectMusic: {fileID: 0}
+  sliderMusic: {fileID: 108293879}
+  ObjectMusic: {fileID: 1965032088}
 --- !u!1 &1383806549
 GameObject:
   m_ObjectHideFlags: 0
@@ -3486,7 +3486,7 @@ Transform:
   m_GameObject: {fileID: 1517275730}
   serializedVersion: 2
   m_LocalRotation: {x: -0.0042147078, y: -0.011279929, z: -0.0010202089, w: -0.99992704}
-  m_LocalPosition: {x: 208, y: 262, z: -722}
+  m_LocalPosition: {x: 277.44, y: 262.15, z: -723.57}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
