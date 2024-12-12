@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI; // Add this to use UI components
 
@@ -11,33 +12,28 @@ public class ControlPoint : MonoBehaviour
     public LineRenderer lineRenderer;
     public float shootPower = 10f;
     public float deceleration = 0.5f; // Deceleration rate (magnitude of negative acceleration)
-    public Text hitCountText; // Reference to the UI Text component
+    public TMP_Text hitCountText; // Reference to the UI Text component
 
     private bool isMoving = false; // Track if the ball is moving
     private int hitCount = 0; // Track the number of hits
 
     void Update()
     {
-        // Update the position of the camera holder to the ball's position
         transform.position = ball.position;
 
-        // Rotate the camera holder based on mouse movement
         if (Input.GetMouseButton(0))
         {
             xRot += Input.GetAxis("Mouse X") * rotateSpeed;
             yRot += Input.GetAxis("Mouse Y") * rotateSpeed;
 
-            // Clamp the vertical rotation
             yRot = Mathf.Clamp(yRot, -35f, 35f);
             transform.rotation = Quaternion.Euler(yRot, xRot, 0f);
 
-            // Activate the line renderer and set its positions
             lineRenderer.gameObject.SetActive(true);
             lineRenderer.SetPosition(0, transform.position);
             lineRenderer.SetPosition(1, transform.position + transform.forward * 4f);
         }
 
-        // Shoot the ball when the mouse button is released
         if (Input.GetMouseButtonUp(0))
         {
             ball.velocity = transform.forward * shootPower;
