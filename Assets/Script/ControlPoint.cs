@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.UI; // Add this to use UI components
 
 public class ControlPoint : MonoBehaviour
 {
@@ -9,6 +10,11 @@ public class ControlPoint : MonoBehaviour
     public float rotateSpeed = 5f;
     public LineRenderer lineRenderer;
     public float shootPower = 10f;
+    public float deceleration = 0.5f; // Deceleration rate (magnitude of negative acceleration)
+    public Text hitCountText; // Reference to the UI Text component
+
+    private bool isMoving = false; // Track if the ball is moving
+    private int hitCount = 0; // Track the number of hits
 
     void Update()
     {
@@ -35,7 +41,46 @@ public class ControlPoint : MonoBehaviour
         if (Input.GetMouseButtonUp(0))
         {
             ball.velocity = transform.forward * shootPower;
+            isMoving = true; // Mark the ball as moving
             lineRenderer.gameObject.SetActive(false);
+            hitCount++; // Increment the hit count
+            UpdateHitCountText(); // Update the UI text
         }
+
+        // Apply deceleration if the ball is moving
+        if (isMoving)
+        {
+            ApplyDeceleration();
+        }
+    }
+
+    void ApplyDeceleration()
+    {
+        // Reduce the ball's velocity by applying deceleration
+        if (ball.velocity.magnitude > 0)
+        {
+            Vector3 decelerationVector = -ball.velocity.normalized * deceleration * Time.deltaTime;
+
+            // Ensure the velocity does not reverse direction
+            if (decelerationVector.magnitude > ball.velocity.magnitude)
+            {
+                ball.velocity = Vector3.zero;
+                isMoving = false; // Stop tracking movement
+            }
+            else
+            {
+                ball.velocity += decelerationVector;
+            }
+        }
+        else
+        {
+            ball.velocity = Vector3.zero;
+            isMoving = false; // Stop tracking movement
+        }
+    }
+
+    void UpdateHitCountText()
+    {
+        hitCountText.text = "Hits: " + hitCount;
     }
 }
