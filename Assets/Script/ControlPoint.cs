@@ -1,7 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.UI; // Add this to use UI components
+using TMPro;
 
 public class ControlPoint : MonoBehaviour
 {
@@ -10,77 +10,114 @@ public class ControlPoint : MonoBehaviour
     public float rotateSpeed = 5f;
     public LineRenderer lineRenderer;
     public float shootPower = 10f;
-    public float deceleration = 0.5f; // Deceleration rate (magnitude of negative acceleration)
-    public Text hitCountText; // Reference to the UI Text component
+    public float deceleration = 0.5f; 
+    public TMP_Text hitCountText;
+    public TMP_Text scoreText; // Tambahkan referensi untuk teks skor
 
-    private bool isMoving = false; // Track if the ball is moving
-    private int hitCount = 0; // Track the number of hits
+    private bool isMoving = false;
+    private int hitCount = 0;
+    private int score = 0; // Variabel untuk menyimpan skor
+
+    public float minYRotation = -10f; 
+    public float maxYRotation = 10f;  
+
+    private Vector3 initialBallPosition; // Menyimpan posisi awal bola
+
+    void Start()
+    {
+        initialBallPosition = ball.position;
+        UpdateScoreText(); // Perbarui teks skor di awal
+    }
 
     void Update()
     {
-        // Update the position of the camera holder to the ball's position
         transform.position = ball.position;
 
-        // Rotate the camera holder based on mouse movement
+        Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
+        RaycastHit hit;
+
+        bool isMouseOverBall = Physics.Raycast(ray, out hit) && hit.collider.gameObject == ball.gameObject;
+
         if (Input.GetMouseButton(0))
         {
             xRot += Input.GetAxis("Mouse X") * rotateSpeed;
             yRot += Input.GetAxis("Mouse Y") * rotateSpeed;
 
-            // Clamp the vertical rotation
-            yRot = Mathf.Clamp(yRot, -35f, 35f);
+            yRot = Mathf.Clamp(yRot, minYRotation, maxYRotation);
             transform.rotation = Quaternion.Euler(yRot, xRot, 0f);
 
-            // Activate the line renderer and set its positions
-            lineRenderer.gameObject.SetActive(true);
-            lineRenderer.SetPosition(0, transform.position);
-            lineRenderer.SetPosition(1, transform.position + transform.forward * 4f);
-        }
-
-        // Shoot the ball when the mouse button is released
-        if (Input.GetMouseButtonUp(0))
-        {
-            ball.velocity = transform.forward * shootPower;
-            isMoving = true; // Mark the ball as moving
-            lineRenderer.gameObject.SetActive(false);
-            hitCount++; // Increment the hit count
-            UpdateHitCountText(); // Update the UI text
-        }
-
-        // Apply deceleration if the ball is moving
-        if (isMoving)
-        {
-            ApplyDeceleration();
-        }
-    }
-
-    void ApplyDeceleration()
-    {
-        // Reduce the ball's velocity by applying deceleration
-        if (ball.velocity.magnitude > 0)
-        {
-            Vector3 decelerationVector = -ball.velocity.normalized * deceleration * Time.deltaTime;
-
-            // Ensure the velocity does not reverse direction
-            if (decelerationVector.magnitude > ball.velocity.magnitude)
+            if (isMouseOverBall)
             {
-                ball.velocity = Vector3.zero;
-                isMoving = false; // Stop tracking movement
+                lineRenderer.gameObject.SetActive(true);
+                lineRenderer.SetPosition(0, transform.position);
+                lineRenderer.SetPosition(1, transform.position + transform.forward * 4f);
             }
             else
             {
-                ball.velocity += decelerationVector;
+                lineRenderer.gameObject.SetActive(false);
             }
         }
-        else
+
+        if (Input.GetMouseButtonUp(0) && isMouseOverBall)
         {
-            ball.velocity = Vector3.zero;
-            isMoving = false; // Stop tracking movement
+            Vector3 shootDirection = new Vector3(transform.forward.x, 0f, transform.forward.z).normalized;
+            ball.velocity = shootDirection * shootPower;
+            lineRenderer.gameObject.SetActive(false);
+            hitCount++;
+            UpdateHitCountText();
+            UpdateScore(); // Hitung skor setiap kali bola ditembakkan
         }
+
+        if (ball.velocity.magnitude > 0)
+        {
+            ball.velocity -= ball.velocity.normalized * deceleration * Time.deltaTime;
+
+            if (ball.velocity.magnitude < 0.1f)
+            {
+                ball.velocity = Vector3.zero;
+            }
+        }
+    }
+
+    public void ResetBall()
+    {
+        ball.position = initialBallPosition; // Kembalikan bola ke posisi awal
+        ball.velocity = Vector3.zero; // Hentikan bola
     }
 
     void UpdateHitCountText()
     {
-        hitCountText.text = "Hits: " + hitCount;
+        hitCountText.text = "Hits: " + hitCount; // Update the hit count text
+    }
+
+    void UpdateScore()
+    {
+        score = CalculateScore(); // Hitung skor berdasarkan hit count
+        UpdateScoreText(); // Perbarui teks skor
+    }
+
+    int CalculateScore()
+    {
+        if (hitCount < 20)
+        {
+            return 1000; // Skor jika hitCount di bawah 20
+        }
+        else if (hitCount >= 21 && hitCount <= 30)
+        {
+            return 750; // Skor jika hitCount antara 21 dan 30
+        }
+        else if (hitCount >= 31 && hitCount <= 50)
+        {
+            return 500; // Skor jika hitCount antara 31 dan 50
+        }
+        else
+        {
+            return 200; // Skor jika hitCount lebih dari 50
+        }
+    }
+
+    void UpdateScoreText()
+    {
+        scoreText.text = "Score: " + score; // Update the score text
     }
 }
