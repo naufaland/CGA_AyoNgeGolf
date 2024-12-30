@@ -33,4 +33,9 @@ public class SceneOverManager : MonoBehaviour
         Time.timeScale = 1;
         SceneManager.LoadScene("Scenes/Main Menu");
     }
+    public void NextLevel()
+    {
+        Time.timeScale = 1;
+        SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex + 1);
+    }
 }

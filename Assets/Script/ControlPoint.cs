@@ -2,72 +2,72 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using TMPro;
+using UnityEngine.UI; // Add this for UI components
 
 public class ControlPoint : MonoBehaviour
 {
-    float xRot, yRot = 0f;
+    public float maxPower = 10f; // Maximum power for the putt
+    public float lineLength = 4f; // Length of the line renderer
     public Rigidbody ball;
     public float rotateSpeed = 5f;
     public LineRenderer lineRenderer;
-    public float shootPower = 10f;
     public float deceleration = 0.5f; 
     public TMP_Text hitCountText;
-    public TMP_Text scoreText; // Tambahkan referensi untuk teks skor
+    public TMP_Text scoreText; 
+    public Slider powerSlider; // Reference to the power slider
+    public float angle = 0f; // Angle for the putt
 
-    private bool isMoving = false;
     private int hitCount = 0;
-    private int score = 0; // Variabel untuk menyimpan skor
+    private int score = 0; 
 
     public float minYRotation = -10f; 
     public float maxYRotation = 10f;  
 
-    private Vector3 initialBallPosition; // Menyimpan posisi awal bola
+    private Vector3 initialBallPosition; 
+    private float powerUpTime;
+    private float power;
+    private float xRot, yRot = 0f;
 
     void Start()
     {
         initialBallPosition = ball.position;
-        UpdateScoreText(); // Perbarui teks skor di awal
+        UpdateScoreText(); 
+        powerSlider.value = 0; // Initialize slider value
+        lineRenderer.gameObject.SetActive(false); // Initially hide the line renderer
     }
 
     void Update()
     {
+        // Update the position of the control point to match the ball's position
         transform.position = ball.position;
 
-        Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
-        RaycastHit hit;
+        // Handle camera rotation with mouse movement
+        xRot += Input.GetAxis("Mouse X") * rotateSpeed;
+        yRot += Input.GetAxis("Mouse Y") * rotateSpeed;
+        yRot = Mathf.Clamp(yRot, minYRotation, maxYRotation);
+        transform.rotation = Quaternion.Euler(yRot, xRot, 0f);
 
-        bool isMouseOverBall = Physics.Raycast(ray, out hit) && hit.collider.gameObject == ball.gameObject;
+        // Show line renderer
+        lineRenderer.gameObject.SetActive(true);
+        UpdateLinePosition();
 
-        if (Input.GetMouseButton(0))
+        // Power up when the spacebar is held down
+        if (Input.GetKey(KeyCode.Space))
         {
-            xRot += Input.GetAxis("Mouse X") * rotateSpeed;
-            yRot += Input.GetAxis("Mouse Y") * rotateSpeed;
-
-            yRot = Mathf.Clamp(yRot, minYRotation, maxYRotation);
-            transform.rotation = Quaternion.Euler(yRot, xRot, 0f);
-
-            if (isMouseOverBall)
-            {
-                lineRenderer.gameObject.SetActive(true);
-                lineRenderer.SetPosition(0, transform.position);
-                lineRenderer.SetPosition(1, transform.position + transform.forward * 4f);
-            }
-            else
-            {
-                lineRenderer.gameObject.SetActive(false);
-            }
+            PowerUp();
         }
 
-        if (Input.GetMouseButtonUp(0) && isMouseOverBall)
+        // Putt the ball when the spacebar is released
+        if (Input.GetKeyUp(KeyCode.Space))
         {
-            Vector3 shootDirection = new Vector3(transform.forward.x, 0f, transform.forward.z).normalized;
-            ball.velocity = shootDirection * shootPower;
+            Putt();
             lineRenderer.gameObject.SetActive(false);
             hitCount++;
             UpdateHitCountText();
-            UpdateScore(); // Hitung skor setiap kali bola ditembakkan
+            UpdateScore(); 
         }
 
+        // Decelerate the ball if it is moving
         if (ball.velocity.magnitude > 0)
         {
             ball.velocity -= ball.velocity.normalized * deceleration * Time.deltaTime;
@@ -77,47 +77,89 @@ public class ControlPoint : MonoBehaviour
                 ball.velocity = Vector3.zero;
             }
         }
+
+        UpdatePowerText(); // Update power text every frame
+    }
+
+    private void UpdateLinePosition()
+    {
+        // Get the mouse position in the world
+        Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
+        Plane plane = new Plane(Vector3.up, transform.position + Vector3.up * 0.1f); // Plane above the ball
+        float hitDistance;
+
+        if (plane.Raycast(ray, out hitDistance))
+        {
+            Vector3 mouseWorldPosition = ray.GetPoint(hitDistance);
+            Vector3 direction = (mouseWorldPosition - transform.position).normalized;
+
+            // Set the line renderer positions
+            lineRenderer.SetPosition(0, transform.position + Vector3.up * 0.5f); // Position above the ball
+            lineRenderer.SetPosition(1, transform.position + Vector3.up * 0.5f + direction * lineLength);
+        }
+    }
+
+    private void Putt()
+    {
+        // Calculate the shoot direction based on the control point's forward direction
+        Vector3 shootDirection = new Vector3(transform.forward.x, 0f, transform.forward.z).normalized;
+        // Apply force to the ball in the shoot direction
+        ball.AddForce(shootDirection * maxPower * power, ForceMode.Impulse);
+        powerUpTime = 0; // Reset power-up time after shooting
+    }
+
+    private void PowerUp()
+    {
+        powerUpTime += Time.deltaTime;
+        power = Mathf.PingPong(powerUpTime, 1);
+        powerSlider.value = power; // Update the power slider
     }
 
     public void ResetBall()
     {
-        ball.position = initialBallPosition; // Kembalikan bola ke posisi awal
-        ball.velocity = Vector3.zero; // Hentikan bola
+        ball.position = initialBallPosition; 
+        ball.velocity = Vector3.zero; 
     }
 
     void UpdateHitCountText()
     {
-        hitCountText.text = "Hits: " + hitCount; // Update the hit count text
+        hitCountText.text = "Hits: " + hitCount; 
     }
 
     void UpdateScore()
     {
-        score = CalculateScore(); // Hitung skor berdasarkan hit count
-        UpdateScoreText(); // Perbarui teks skor
+        score = CalculateScore(); 
+        UpdateScoreText(); 
     }
 
     int CalculateScore()
     {
         if (hitCount < 20)
         {
-            return 1000; // Skor jika hitCount di bawah 20
+            return 1000; 
         }
         else if (hitCount >= 21 && hitCount <= 30)
         {
-            return 750; // Skor jika hitCount antara 21 dan 30
+            return 750; 
         }
         else if (hitCount >= 31 && hitCount <= 50)
         {
-            return 500; // Skor jika hitCount antara 31 dan 50
+            return 500; 
         }
         else
         {
-            return 200; // Skor jika hitCount lebih dari 50
+            return 200; 
         }
     }
 
     void UpdateScoreText()
     {
-        scoreText.text = "Score: " + score; // Update the score text
+        scoreText.text = "Score: " + score; 
+    }
+
+    void UpdatePowerText()
+    {
+        // Update the power text if you have a UI element for it
+        // powerText.text = "Power: " + powerSlider.value.ToString("F1"); // Uncomment if you have a power text UI
     }
 }
